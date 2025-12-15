@@ -1,6 +1,5 @@
 package com.example.financetrackerv2
 
-import android.graphics.Paint
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -13,13 +12,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.Button
-import androidx.compose.material3.Label
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.financetrackerv2.ui.theme.FinanceTrackerTheme
 import androidx.compose.runtime.getValue
@@ -28,12 +25,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.google.firebase.Firebase
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.initialize
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Firebase.initialize(this)
+        val auth = FirebaseAuth.getInstance()
+        if(auth.currentUser != null){
+            Log.d("user",(auth.currentUser!!.email!!))
+            //TODO put logic here to move to another screen
+        }
         enableEdgeToEdge()
         setContent {
             FinanceTrackerTheme {
@@ -47,10 +50,10 @@ class MainActivity : ComponentActivity() {
                         when(mode){
                             LoginState.LOG_IN -> LoginForm(
                                 modifier = Modifier.align(Alignment.CenterHorizontally),
-                                onLogin = { username, password ->login(username, password)})
+                                onLogin = { email, password ->login(this@MainActivity,email, password)})
                             LoginState.SIGN_UP -> SignUpForm(
                                 modifier = Modifier.align(Alignment.CenterHorizontally),
-                                onSignup = { username, password ->signUp(username, password)})
+                                onSignup = { email, password ->signUp(this@MainActivity,email, password)})
                         }
 
                         ToggleLoginSignup(mode = mode, toggle = {
@@ -71,12 +74,30 @@ enum class LoginState {
     LOG_IN,
     SIGN_UP
 }
-fun login(username: String, password:String): Unit{
-    Log.d("loginScreen", "Login")
+fun login(context:ComponentActivity,email: String, password:String): Unit{
+    val auth = FirebaseAuth.getInstance()
+    auth.signInWithEmailAndPassword(email, password)
+        .addOnCompleteListener(context) { task ->
+            if (task.isSuccessful) {
+                Log.d("Login", "signInWithEmailAndPassword:success")
+                val user = auth.currentUser
+            } else {
+                Log.w("Login", "signInWithEmailAndPassword:failure", task.exception)
+            }
+        }
 }
 
-fun signUp(username: String, password: String): Unit{
-    Log.d("loginScreen", "Signup")
+fun signUp(context:ComponentActivity, email: String, password: String): Unit{
+    val auth = FirebaseAuth.getInstance()
+    auth.createUserWithEmailAndPassword(email, password)
+        .addOnCompleteListener(context) { task ->
+            if (task.isSuccessful) {
+                Log.d("Login", "createUserWithEmailAndPassword:success")
+                val user = auth.currentUser
+            } else {
+                Log.w("Login", "createUserWithEmailAndPassword:failure", task.exception)
+            }
+        }
 }
 @Composable
 fun Greeting(modifier: Modifier = Modifier) {
@@ -97,15 +118,15 @@ fun GreetingPreview() {
 @Composable
 fun LoginForm(modifier: Modifier = Modifier,
               onLogin: (String, String)-> Unit) {
-    var username by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
     Column(modifier = modifier) {
         TextField(
             modifier = modifier,
-            value = username,
-            onValueChange = { username = it },
-            label = { Text("Username") }
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Email") }
         )
         TextField(
             modifier = modifier,
@@ -114,7 +135,7 @@ fun LoginForm(modifier: Modifier = Modifier,
             label = { Text("Password") }
         )
         Button(
-            onClick = {onLogin(username,password )},
+            onClick = {onLogin(email,password )},
             modifier = modifier,
         ){
             Text("Login")
@@ -123,29 +144,20 @@ fun LoginForm(modifier: Modifier = Modifier,
 
 }
 
-@Preview(showBackground = true)
-@Composable
-fun LoginFormPreview() {
-    FinanceTrackerTheme {
-        LoginForm(
-            onLogin = { username, password ->login(username, password)})
-    }
-}
-
 @Composable
 fun SignUpForm(modifier: Modifier = Modifier,
                onSignup: (String, String)-> Unit) {
 
-    var username by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var repeatPassword by remember { mutableStateOf("") }
     var isError by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf("") }
     Column(modifier = modifier) {
         TextField(
-            value = username,
-            onValueChange = { username = it },
-            label = { Text("Username") }
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("email") }
         )
         TextField(
             value = password,
@@ -167,7 +179,7 @@ fun SignUpForm(modifier: Modifier = Modifier,
                     errorMessage = "Repeated Password does not match"
                     return@Button
                 }
-                onSignup(username,password )},
+                onSignup(email,password )},
             modifier = modifier,
         ){
             Text("Sign Up")
@@ -176,14 +188,6 @@ fun SignUpForm(modifier: Modifier = Modifier,
 
 }
 
-@Preview(showBackground = true)
-@Composable
-fun SignupFormPreview() {
-    FinanceTrackerTheme {
-        SignUpForm(
-            onSignup = { username, password ->login(username, password)})
-    }
-}
 
 @Composable
 fun ToggleLoginSignup(modifier: Modifier = Modifier, mode: LoginState, toggle: ()-> Unit ){
