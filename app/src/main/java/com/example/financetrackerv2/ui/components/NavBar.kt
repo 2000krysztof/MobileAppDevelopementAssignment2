@@ -14,14 +14,14 @@ import com.example.financetrackerv2.Screens.Screen
 @Composable
 fun NavBar(
     setScreen:(String)->Unit,
-    currentRoute: Screen
+    currentRoute: String
 ) {
 
     NavigationBar {
         NavigationBar {
             bottomNavItems.forEach { item ->
                 NavigationBarItem(
-                    selected = currentRoute == item.screen,
+                    selected = currentRoute == item.screen.route,
                     onClick = {
                         setScreen(item.screen.route)
                     },
@@ -40,6 +40,6 @@ data class NavItem(
 
 val bottomNavItems = listOf<NavItem>(
     NavItem(Screen.Home, Icons.Default.Home, "Home"),
-    NavItem(Screen.Home, Icons.Default.Menu, "Budget List"),
-    NavItem(Screen.Home, Icons.Default.Settings, "Settings"),
+    NavItem(Screen.BudgetList, Icons.Default.Menu, "Budget List"),
+    NavItem(Screen.Settings, Icons.Default.Settings, "Settings"),
 )
