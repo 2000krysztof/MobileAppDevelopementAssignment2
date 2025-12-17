@@ -89,6 +89,9 @@ fun AppNavGraph() {
                         val budgetEntry = BudgetEntry(title,description,timestamp,amount)
                         dbViewModel.addEntry(budgetEntry)
                     },
+                    deleteBudgetEntry = { entry->
+                      dbViewModel.deleteEntry(entry)
+                    },
                     dbViewModel.entriesState.success ?: emptyList()
                 )
             }

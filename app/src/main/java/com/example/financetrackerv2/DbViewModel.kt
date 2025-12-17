@@ -129,6 +129,40 @@ class DbViewModel : ViewModel(){
         }
     }
 
+    fun updateEntry(entry: BudgetEntryUi) {
+        viewModelScope.launch {
+            entryAddedState = entryAddedState.copy(loading = true, error = null)
+
+            entryAddedState = when (val result = updateEntryAsync(entry)) {
+                is DbResult.Success ->
+                    entryAddedState.copy(loading = false, success = result.result)
+                is DbResult.Error ->
+                    entryAddedState.copy(
+                        loading = false,
+                        success = null,
+                        error = result.message
+                    )
+            }
+        }
+    }
+
+    fun deleteEntry(entry: BudgetEntryUi) {
+        viewModelScope.launch {
+            entryAddedState = entryAddedState.copy(loading = true, error = null)
+
+            entryAddedState = when (val result = deleteEntryAsync(entry)) {
+                is DbResult.Success ->
+                    entryAddedState.copy(loading = false, success = result.result)
+                is DbResult.Error ->
+                    entryAddedState.copy(
+                        loading = false,
+                        success = null,
+                        error = result.message
+                    )
+            }
+        }
+    }
+
     suspend fun loadUserAsync(uid: String): DbResult<User> {
         return try {
             val doc = db
@@ -188,6 +222,7 @@ class DbViewModel : ViewModel(){
     }
 
 
+
     suspend fun addBudgetEntryAsync(budgetEntry: BudgetEntry): DbResult<BudgetEntryUi> {
         val uid = auth.currentUser?.uid
             ?: return DbResult.Error("Not Authenticated")
@@ -205,7 +240,53 @@ class DbViewModel : ViewModel(){
             DbResult.Success(budgetEntryUi)
 
         } catch (e: Exception) {
-            Log.d("entries", e.message!!)
+            DbResult.Error(e.message ?: "Unknown error")
+        }
+    }
+
+    suspend fun updateEntryAsync(entryUi: BudgetEntryUi): DbResult<BudgetEntryUi> {
+        val uid = auth.currentUser?.uid
+            ?: return DbResult.Error("Not Authenticated")
+
+        return try {
+            val ref = db.collection("users")
+                .document(uid)
+                .collection("budgetEntries")
+                .document(entryUi.id)
+                .set(entryUi.entry)
+                .await()
+
+            entriesState = entriesState.copy(
+                success = entriesState.success?.map { existing ->
+                    if (existing.id == entryUi.id) entryUi else existing
+                }
+            )
+            DbResult.Success(entryUi)
+
+        } catch (e: Exception) {
+            DbResult.Error(e.message ?: "Unknown error")
+        }
+    }
+
+    suspend fun deleteEntryAsync(entryUi: BudgetEntryUi): DbResult<BudgetEntryUi> {
+        val uid = auth.currentUser?.uid
+            ?: return DbResult.Error("Not Authenticated")
+
+        return try {
+            val ref = db.collection("users")
+                .document(uid)
+                .collection("budgetEntries")
+                .document(entryUi.id)
+                .delete()
+                .await()
+
+            entriesState = entriesState.copy(
+                success = entriesState.success
+                    ?.filterNot { it.id == entryUi.id }
+            )
+            DbResult.Success(entryUi)
+
+        } catch (e: Exception) {
             DbResult.Error(e.message ?: "Unknown error")
         }
     }
