@@ -1,6 +1,7 @@
 package com.example.financetrackerv2
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -8,24 +9,28 @@ import androidx.compose.runtime.setValue
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.financetrackerv2.DataModels.User
 import com.example.financetrackerv2.Screens.BudgetListScreen
 import com.example.financetrackerv2.Screens.HomeScreen
 import com.example.financetrackerv2.Screens.LoginScreen
 import com.example.financetrackerv2.Screens.Screen
 import com.example.financetrackerv2.Screens.SettingsScreen
 import com.google.firebase.auth.FirebaseAuth
+import kotlin.math.log
 
 @Composable
 fun AppNavGraph() {
     val navController = rememberNavController()
     val auth = FirebaseAuth.getInstance()
     val loginViewModel = LoginViewModel()
-    var startDestination = Screen.Login.route
-    if(auth.currentUser != null){
-        startDestination = Screen.Home.route
-    }
-    var currentScreen by remember { mutableStateOf(startDestination)}
+    val dbViewModel = DbViewModel()
 
+    val startDestination = Screen.Login.route
+
+    var currentScreen by remember { mutableStateOf(startDestination)}
+    if(auth.currentUser != null){
+        currentScreen = Screen.Home.route
+    }
     NavHost(
         navController = navController,
         startDestination = startDestination
@@ -36,7 +41,6 @@ fun AppNavGraph() {
                     loginViewModel.login(email, password)
                     if(loginViewModel.uiState.success){
                         navController.navigate(Screen.Home.route)
-                        currentScreen = Screen.Home.route
                     }
                 },
                 onSignup = { email, password ->
@@ -44,11 +48,26 @@ fun AppNavGraph() {
                     if(loginViewModel.uiState.success){
                         navController.navigate(Screen.Home.route)
                         currentScreen = Screen.Home.route
+                        dbViewModel.createUser(User(email))
                     }
                 },
                 loginViewModel.uiState
+
+
             )
+            LaunchedEffect(loginViewModel.uiState.success) {
+                if (loginViewModel.uiState.success) {
+                    if(loginViewModel.uiState.isNewUser) {
+                        dbViewModel.createUser(User(loginViewModel.uiState.email))
+                    }
+                    navController.navigate(Screen.Home.route)
+                    currentScreen = Screen.Home.route
+                    dbViewModel.loadUser()
+                }
+            }
+
         }
+
 
 
         composable(Screen.Home.route){
