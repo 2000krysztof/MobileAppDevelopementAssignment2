@@ -16,7 +16,9 @@ import com.example.financetrackerv2.Screens.LoginScreen
 import com.example.financetrackerv2.Screens.Screen
 import com.example.financetrackerv2.Screens.SettingsScreen
 import com.google.firebase.auth.FirebaseAuth
-import kotlin.math.log
+import androidx.compose.material3.CircularProgressIndicator
+import com.example.financetrackerv2.DataModels.BudgetEntry
+
 
 @Composable
 fun AppNavGraph() {
@@ -71,16 +73,27 @@ fun AppNavGraph() {
 
 
         composable(Screen.Home.route){
-            HomeScreen(
-                setScreen = { route ->
-                    navController.navigate(route) {
-                        popUpTo(navController.graph.startDestinationId)
-                        launchSingleTop = true
-                    }
-                    currentScreen = route
-                },
-                currentScreen =  currentScreen
-            )
+            if(dbViewModel.entriesState.loading){
+                CircularProgressIndicator()
+            }else{
+                HomeScreen(
+                    setScreen = { route ->
+                        navController.navigate(route) {
+                            popUpTo(navController.graph.startDestinationId)
+                            launchSingleTop = true
+                        }
+                        currentScreen = route
+                    },
+                    currentScreen =  currentScreen,
+                    addBudgetEntry = { title, description, timestamp, amount ->
+                        val budgetEntry = BudgetEntry(title,description,timestamp,amount)
+                        dbViewModel.addEntry(budgetEntry)
+                    },
+                    dbViewModel.entriesState.success ?: emptyList()
+                )
+            }
+
+
         }
 
         composable(Screen.Settings.route){
