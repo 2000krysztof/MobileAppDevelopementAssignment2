@@ -56,22 +56,22 @@ class DbViewModel : ViewModel(){
         viewModelScope.launch {
             dbState = dbState.copy(loading = true, error = null)
 
+            if(auth.currentUser != null) {
+                dbState = when (val result = loadUserAsync(auth.currentUser!!.uid)) {
+                    is DbResult.Success -> {
+                        loadEntries()
+                        dbState.copy(loading = false, success = result.result)
+                    }
 
-            dbState = when (val result = loadUserAsync(auth.currentUser!!.uid)) {
-                is DbResult.Success -> {
-                    loadEntries()
-                    dbState.copy(loading = false, success = result.result)
+
+                    is DbResult.Error ->
+                        dbState.copy(
+                            loading = false,
+                            success = null,
+                            error = result.message
+                        )
                 }
-
-
-                is DbResult.Error ->
-                    dbState.copy(
-                        loading = false,
-                        success = null,
-                        error = result.message
-                    )
             }
-
         }
     }
 

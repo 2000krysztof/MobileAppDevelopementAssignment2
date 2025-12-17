@@ -30,9 +30,7 @@ fun AppNavGraph() {
     val startDestination = Screen.Login.route
 
     var currentScreen by remember { mutableStateOf(startDestination)}
-    if(auth.currentUser != null){
-        currentScreen = Screen.Home.route
-    }
+
     NavHost(
         navController = navController,
         startDestination = startDestination
@@ -111,7 +109,15 @@ fun AppNavGraph() {
                     }
                     currentScreen = route
                 },
-                currentScreen =  currentScreen
+                currentScreen =  currentScreen,
+                logOut = {
+                    loginViewModel.logout()
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                    currentScreen = Screen.Login.route
+                }
             )
         }
 

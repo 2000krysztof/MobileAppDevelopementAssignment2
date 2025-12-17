@@ -45,6 +45,10 @@ class LoginViewModel : ViewModel() {
         }
     }
 
+    fun logout(){
+        FirebaseAuth.getInstance().signOut()
+        uiState = LoginUiState()
+    }
     fun signup(email: String, password: String) {
         viewModelScope.launch {
             uiState = uiState.copy(loading = true, error = null)
