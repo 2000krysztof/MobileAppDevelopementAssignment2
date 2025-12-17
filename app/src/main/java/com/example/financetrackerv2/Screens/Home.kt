@@ -1,6 +1,7 @@
 package com.example.financetrackerv2.Screens
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -56,7 +57,7 @@ fun HomeScreen(
             }
         }
     ) {padding ->
-        Box(modifier = Modifier.padding(padding)) {
+        Column(modifier = Modifier.padding(padding)) {
             Text("Home")
             BudgetEntryListView(entries,
                 deleteEntry = { entryUi ->
