@@ -17,6 +17,8 @@ import androidx.compose.ui.Modifier
 import com.example.financetrackerv2.BudgetEntryUi
 import com.example.financetrackerv2.ui.components.AddBudgetEntryDialogue
 import com.example.financetrackerv2.ui.components.BudgetEntryListView
+import com.example.financetrackerv2.ui.components.DeleteEntryDialogue
+import com.example.financetrackerv2.ui.components.EditEntryDialogue
 import com.example.financetrackerv2.ui.components.NavBar
 import com.google.firebase.Timestamp
 
@@ -25,10 +27,17 @@ fun HomeScreen(
     setScreen:(String)->Unit,
     currentScreen: String,
     addBudgetEntry: (String, String, Timestamp, Double)->Unit,
+    deleteBudgetEntry: (BudgetEntryUi) -> Unit,
+    editBudgetEntry: (BudgetEntryUi) -> Unit,
     entries:List<BudgetEntryUi>
 ){
 
     var showAddEntry by remember { mutableStateOf(false)}
+    var showDeleteEntry by remember { mutableStateOf(false)}
+    var showEditEntry by remember { mutableStateOf(false) }
+    var targetDeleteEntry : BudgetEntryUi? = null
+    var targetEditEntry : BudgetEntryUi? = null
+
     Scaffold(
         bottomBar = {
             NavBar(
@@ -49,13 +58,45 @@ fun HomeScreen(
     ) {padding ->
         Box(modifier = Modifier.padding(padding)) {
             Text("Home")
-            BudgetEntryListView(entries)
+            BudgetEntryListView(entries,
+                deleteEntry = { entryUi ->
+                    showDeleteEntry = true
+                    targetDeleteEntry = entryUi
+            },
+                editEntry = {entryUi ->
+                    showEditEntry = true
+                    targetEditEntry = entryUi
+                }
+            )
+
+
+
+            if(showDeleteEntry && targetDeleteEntry!=null){
+                DeleteEntryDialogue(
+                    targetDeleteEntry,
+                    deleteEntry = { entry ->
+                        deleteBudgetEntry(entry)
+                    },
+                    hide = {
+                        showDeleteEntry = false
+                    }
+                    )
+            }
+            if(showEditEntry && targetEditEntry != null){
+                EditEntryDialogue(
+                    targetEditEntry,
+                    editEntry = editBudgetEntry,
+                    hide = {showEditEntry = false}
+                )
+            }
+
             if(showAddEntry){
                 AddBudgetEntryDialogue(
                     addBudgetEntry = addBudgetEntry,
                     hide = {showAddEntry = false}
                 )
             }
+
         }
     }
 }
