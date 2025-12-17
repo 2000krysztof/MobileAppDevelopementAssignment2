@@ -1,5 +1,6 @@
 package com.example.financetrackerv2
 
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -21,7 +22,7 @@ data class DbState(
 
 data class DbEntriesState(
     val loading: Boolean = false,
-    val success: List<BudgetEntry>? = null,
+    var success: List<BudgetEntryUi>? = null,
     val error: String? = null
 )
 
@@ -55,9 +56,13 @@ class DbViewModel : ViewModel(){
         viewModelScope.launch {
             dbState = dbState.copy(loading = true, error = null)
 
+
             dbState = when (val result = loadUserAsync(auth.currentUser!!.uid)) {
-                is DbResult.Success ->
+                is DbResult.Success -> {
+                    loadEntries()
                     dbState.copy(loading = false, success = result.result)
+                }
+
 
                 is DbResult.Error ->
                     dbState.copy(
@@ -66,6 +71,7 @@ class DbViewModel : ViewModel(){
                         error = result.message
                     )
             }
+
         }
     }
 
@@ -96,7 +102,6 @@ class DbViewModel : ViewModel(){
             entriesState = when (val result = getAllBudgetEntriesAsync()) {
                 is DbResult.Success ->
                     entriesState.copy(loading = false, success = result.result)
-
                 is DbResult.Error ->
                     entriesState.copy(
                         loading = false,
@@ -107,14 +112,13 @@ class DbViewModel : ViewModel(){
         }
     }
 
-    fun addEntry(entry: BudgetEntry, bid: String) {
+    fun addEntry(entry: BudgetEntry) {
         viewModelScope.launch {
             entryAddedState = entryAddedState.copy(loading = true, error = null)
 
             entryAddedState = when (val result = addBudgetEntryAsync(entry)) {
                 is DbResult.Success ->
                     entryAddedState.copy(loading = false, success = result.result)
-
                 is DbResult.Error ->
                     entryAddedState.copy(
                         loading = false,
@@ -156,18 +160,29 @@ class DbViewModel : ViewModel(){
     }
 
 
-    suspend fun getAllBudgetEntriesAsync(): DbResult<List<BudgetEntry>> {
+    suspend fun getAllBudgetEntriesAsync(): DbResult<List<BudgetEntryUi>> {
         val uid = auth.currentUser?.uid ?: return DbResult.Error("Not Authenticated")
+
         return try {
-                val entries = db.collection("users")
-                    .document(uid)
-                    .collection("budgetEntries")
-                    .orderBy("timestamp")
-                    .get()
-                    .await()
-                    .toObjects(BudgetEntry::class.java)
-            DbResult.Success(entries)
-        }catch (e: Exception){
+            val snapshot = db.collection("users")
+                .document(uid)
+                .collection("budgetEntries")
+                .orderBy("timestamp")
+                .get()
+                .await()
+
+            val uiEntries = snapshot.documents.mapNotNull { doc ->
+                val entry = doc.toObject(BudgetEntry::class.java)
+                entry?.let {
+                    BudgetEntryUi(
+                        id = doc.id,
+                        entry = it
+                    )
+                }
+            }
+
+            DbResult.Success(uiEntries)
+        } catch (e: Exception) {
             DbResult.Error(e.message ?: "Unknown error")
         }
     }
@@ -183,11 +198,12 @@ class DbViewModel : ViewModel(){
                 .collection("budgetEntries")
                 .add(budgetEntry)
                 .await()
+            val budgetEntryUi = BudgetEntryUi(ref.id, budgetEntry)
+            entriesState.success = (entriesState.success ?: emptyList()) + budgetEntryUi
+            DbResult.Success(budgetEntryUi)
 
-            DbResult.Success(
-                BudgetEntryUi(ref.id, budgetEntry)
-            )
         } catch (e: Exception) {
+            Log.d("entries", e.message!!)
             DbResult.Error(e.message ?: "Unknown error")
         }
     }
