@@ -199,7 +199,9 @@ class DbViewModel : ViewModel(){
                 .add(budgetEntry)
                 .await()
             val budgetEntryUi = BudgetEntryUi(ref.id, budgetEntry)
-            entriesState.success = (entriesState.success ?: emptyList()) + budgetEntryUi
+            entriesState = entriesState.copy(
+                success = (entriesState.success ?: emptyList()) + budgetEntryUi
+            )
             DbResult.Success(budgetEntryUi)
 
         } catch (e: Exception) {
