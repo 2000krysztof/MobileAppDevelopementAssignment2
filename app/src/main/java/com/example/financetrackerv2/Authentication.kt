@@ -16,7 +16,9 @@ import kotlinx.coroutines.tasks.await
 data class LoginUiState(
     val loading: Boolean = false,
     val success: Boolean = false,
-    val error: String? = null
+    val isNewUser: Boolean = false,
+    val error: String? = null,
+    val email: String = ""
 )
 sealed interface AuthResult {
     data class Success(val user: FirebaseUser) : AuthResult
@@ -26,14 +28,13 @@ sealed interface AuthResult {
 class LoginViewModel : ViewModel() {
     var uiState by mutableStateOf(LoginUiState())
         private set
-
     fun login(email: String, password: String) {
         viewModelScope.launch {
             uiState = uiState.copy(loading = true, error = null)
 
             uiState = when (val result = loginAsync(email, password)) {
                 is AuthResult.Success ->
-                    uiState.copy(loading = false, success = true)
+                    uiState.copy(loading = false, success = true, email= email)
 
                 is AuthResult.Error ->
                     uiState.copy(
@@ -50,12 +51,13 @@ class LoginViewModel : ViewModel() {
 
             uiState = when (val result = signUpAsync(email, password)) {
                 is AuthResult.Success ->
-                    uiState.copy(loading = false, success = true)
+                    uiState.copy(loading = false, success = true, isNewUser = true, email=email)
 
                 is AuthResult.Error ->
                     uiState.copy(
                         loading = false,
-                        error = result.message
+                        error = result.message,
+                        isNewUser = true
                     )
             }
         }
@@ -79,6 +81,7 @@ class LoginViewModel : ViewModel() {
                 .createUserWithEmailAndPassword(email, password)
                 .await()
             AuthResult.Success(result.user!!)
+
         }catch (e: Exception){
             AuthResult.Error(e.message ?: "Unknown error")
         }
