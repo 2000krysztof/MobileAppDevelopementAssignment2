@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.financetrackerv2.DataModels.BudgetEntry
 import com.example.financetrackerv2.DataModels.User
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -18,6 +19,23 @@ data class DbState(
     val error: String? = null
 )
 
+data class DbEntriesState(
+    val loading: Boolean = false,
+    val success: List<BudgetEntry>? = null,
+    val error: String? = null
+)
+
+data class DbEntryAddState(
+    val loading: Boolean = false,
+    val success: BudgetEntryUi? = null,
+    val error: String? = null
+)
+
+data class BudgetEntryUi(
+    val id: String,
+    val entry: BudgetEntry
+)
+
 sealed interface DbResult<T>{
     data class Success<T>(val result: T): DbResult<T>
     data class Error<T>(val message:String): DbResult<T>
@@ -28,7 +46,11 @@ class DbViewModel : ViewModel(){
     private val auth = FirebaseAuth.getInstance()
     var dbState by mutableStateOf(DbState())
         private set
+    var entriesState by mutableStateOf(DbEntriesState())
+        private set
 
+    var entryAddedState by mutableStateOf(DbEntryAddState())
+        private set
     fun loadUser() {
         viewModelScope.launch {
             dbState = dbState.copy(loading = true, error = null)
@@ -39,6 +61,62 @@ class DbViewModel : ViewModel(){
 
                 is DbResult.Error ->
                     dbState.copy(
+                        loading = false,
+                        success = null,
+                        error = result.message
+                    )
+            }
+        }
+    }
+
+
+
+    fun createUser(user: User) {
+        viewModelScope.launch {
+            dbState = dbState.copy(loading = true, error = null)
+
+            dbState = when (val result = createUserAsync(auth.currentUser!!.uid, user)) {
+                is DbResult.Success ->
+                    dbState.copy(loading = false, success = result.result)
+
+                is DbResult.Error ->
+                    dbState.copy(
+                        loading = false,
+                        success = null,
+                        error = result.message
+                    )
+            }
+        }
+    }
+
+    fun loadEntries() {
+        viewModelScope.launch {
+            entriesState = entriesState.copy(loading = true, error = null)
+
+            entriesState = when (val result = getAllBudgetEntriesAsync()) {
+                is DbResult.Success ->
+                    entriesState.copy(loading = false, success = result.result)
+
+                is DbResult.Error ->
+                    entriesState.copy(
+                        loading = false,
+                        success = null,
+                        error = result.message
+                    )
+            }
+        }
+    }
+
+    fun addEntry(entry: BudgetEntry, bid: String) {
+        viewModelScope.launch {
+            entryAddedState = entryAddedState.copy(loading = true, error = null)
+
+            entryAddedState = when (val result = addBudgetEntryAsync(entry)) {
+                is DbResult.Success ->
+                    entryAddedState.copy(loading = false, success = result.result)
+
+                is DbResult.Error ->
+                    entryAddedState.copy(
                         loading = false,
                         success = null,
                         error = result.message
@@ -64,24 +142,6 @@ class DbViewModel : ViewModel(){
         }
     }
 
-    fun createUser(user: User) {
-        viewModelScope.launch {
-            dbState = dbState.copy(loading = true, error = null)
-
-            dbState = when (val result = createUserAsync(auth.currentUser!!.uid, user)) {
-                is DbResult.Success ->
-                    dbState.copy(loading = false, success = result.result)
-
-                is DbResult.Error ->
-                    dbState.copy(
-                        loading = false,
-                        success = null,
-                        error = result.message
-                    )
-            }
-        }
-    }
-
     suspend fun createUserAsync(uid: String, user : User): DbResult<User> {
         return try {
                 db.collection("users")
@@ -90,6 +150,43 @@ class DbViewModel : ViewModel(){
                 .await()
 
             DbResult.Success(user)
+        } catch (e: Exception) {
+            DbResult.Error(e.message ?: "Unknown error")
+        }
+    }
+
+
+    suspend fun getAllBudgetEntriesAsync(): DbResult<List<BudgetEntry>> {
+        val uid = auth.currentUser?.uid ?: return DbResult.Error("Not Authenticated")
+        return try {
+                val entries = db.collection("users")
+                    .document(uid)
+                    .collection("budgetEntries")
+                    .orderBy("timestamp")
+                    .get()
+                    .await()
+                    .toObjects(BudgetEntry::class.java)
+            DbResult.Success(entries)
+        }catch (e: Exception){
+            DbResult.Error(e.message ?: "Unknown error")
+        }
+    }
+
+
+    suspend fun addBudgetEntryAsync(budgetEntry: BudgetEntry): DbResult<BudgetEntryUi> {
+        val uid = auth.currentUser?.uid
+            ?: return DbResult.Error("Not Authenticated")
+
+        return try {
+            val ref = db.collection("users")
+                .document(uid)
+                .collection("budgetEntries")
+                .add(budgetEntry)
+                .await()
+
+            DbResult.Success(
+                BudgetEntryUi(ref.id, budgetEntry)
+            )
         } catch (e: Exception) {
             DbResult.Error(e.message ?: "Unknown error")
         }
