@@ -249,16 +249,21 @@ class DbViewModel : ViewModel(){
             ?: return DbResult.Error("Not Authenticated")
 
         return try {
-            val ref = db.collection("users")
+            db.collection("users")
                 .document(uid)
                 .collection("budgetEntries")
                 .document(entryUi.id)
                 .set(entryUi.entry)
                 .await()
 
+            val updated = BudgetEntryUi(
+                id = entryUi.id,
+                entry = entryUi.entry.copy()
+            )
+
             entriesState = entriesState.copy(
-                success = entriesState.success?.map { existing ->
-                    if (existing.id == entryUi.id) entryUi else existing
+                success = entriesState.success?.map {
+                    if (it.id == updated.id) updated else it
                 }
             )
             DbResult.Success(entryUi)

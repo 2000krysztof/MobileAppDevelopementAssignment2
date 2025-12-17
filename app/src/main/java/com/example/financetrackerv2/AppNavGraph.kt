@@ -92,6 +92,9 @@ fun AppNavGraph() {
                     deleteBudgetEntry = { entry->
                       dbViewModel.deleteEntry(entry)
                     },
+                    editBudgetEntry = { entry->
+                        dbViewModel.updateEntry(entry)
+                    },
                     dbViewModel.entriesState.success ?: emptyList()
                 )
             }

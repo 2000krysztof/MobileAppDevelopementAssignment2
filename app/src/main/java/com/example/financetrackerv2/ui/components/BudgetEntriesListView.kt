@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -23,16 +24,23 @@ import com.example.financetrackerv2.DataModels.BudgetEntry
 @Composable
 fun BudgetEntryListView(
     entries:List<BudgetEntryUi>,
-    deleteEntry: (BudgetEntryUi)->Unit
+    deleteEntry: (BudgetEntryUi)->Unit,
+    editEntry: (BudgetEntryUi)->Unit
 ){
     LazyColumn {
         items(
             items = entries,
             key = { it.id }
         ) { entry ->
-            BudgetEntryListItem(entry, deleteEntry={
+            BudgetEntryListItem(entry,
+                deleteEntry={
                 deleteEntry(entry)
-            })
+            },
+                editEntry={
+                editEntry(entry)
+                }
+
+            )
         }
     }
 
@@ -42,7 +50,8 @@ fun BudgetEntryListView(
 @Composable
 fun BudgetEntryListItem(
     entryUi: BudgetEntryUi,
-    deleteEntry : ()->Unit
+    deleteEntry : ()->Unit,
+    editEntry: ()->Unit
 ){
     val entry = entryUi.entry
     Card(
@@ -62,6 +71,9 @@ fun BudgetEntryListItem(
             Text(text = entry.amount.toString())
             Button(onClick = deleteEntry) {
                 Icon(Icons.Default.Delete, contentDescription = "Delete")
+            }
+            Button(onClick = editEntry) {
+                Icon(Icons.Default.Edit, contentDescription = "Edit")
             }
         }
 
