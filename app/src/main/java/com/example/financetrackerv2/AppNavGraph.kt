@@ -124,7 +124,18 @@ fun AppNavGraph() {
                     }
                     currentScreen = route
                 },
-                currentScreen =  currentScreen
+                currentScreen =  currentScreen,
+                addBudgetEntry = { title, description, timestamp, amount ->
+                    val budgetEntry = BudgetEntry(title,description,timestamp,amount)
+                    dbViewModel.addEntry(budgetEntry)
+                },
+                deleteBudgetEntry = { entry->
+                    dbViewModel.deleteEntry(entry)
+                },
+                editBudgetEntry = { entry->
+                    dbViewModel.updateEntry(entry)
+                },
+                dbViewModel.entriesState.success ?: emptyList()
             )
         }
 
