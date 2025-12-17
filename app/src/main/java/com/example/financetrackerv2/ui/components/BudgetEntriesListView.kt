@@ -1,7 +1,10 @@
 package com.example.financetrackerv2.ui.components
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -64,17 +67,24 @@ fun BudgetEntryListItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Start
         ) {
-            Text(text = entry.title)
-            Text(text = entry.description)
-            Text(text = entry.amount.toString())
-            Button(onClick = deleteEntry) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete")
+            Column {
+                Text(text = entry.title)
+                Text(text = entry.description)
+                Text(text = entry.amount.toString())
             }
-            Button(onClick = editEntry) {
-                Icon(Icons.Default.Edit, contentDescription = "Edit")
+            Spacer(modifier = Modifier.weight(1f))
+            Column {
+                Button(onClick = deleteEntry) {
+                    Icon(Icons.Default.Delete, contentDescription = "Delete")
+                }
+                Button(onClick = editEntry) {
+                    Icon(Icons.Default.Edit, contentDescription = "Edit")
+                }
             }
+
         }
 
 
